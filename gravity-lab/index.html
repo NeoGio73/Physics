@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Gravity Force Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: an instrument page. Header, a full-width 3D bench, then controls, readout, data log and questions in a two-column grid that stacks on phones. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f5f7fa;
+  --ink: #15202c;
+  --muted: #5a6877;
+  --line: #d6dce4;
+  --accent: #2557c7;
+  --accent-ink: #ffffff;
+  --m1: #2f66d6;
+  --m2: #d4503a;
+  --stage-a: #fbfcfd;
+  --stage-b: #d9e0e8;
+  --label-bg: rgba(255,255,255,.88);
+  --focus: #2557c7;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #171e27; --surface-2: #1d2530; --ink: #e6ebf1; --muted: #98a5b4;
+    --line: #2c3643; --accent: #6f9bff; --accent-ink: #0b1220; --m1: #5d8cf0; --m2: #ee7660;
+    --stage-a: #232d3a; --stage-b: #0d1218; --label-bg: rgba(18,24,32,.86); --focus: #8fb0ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #171e27; --surface-2: #1d2530; --ink: #e6ebf1; --muted: #98a5b4;
+  --line: #2c3643; --accent: #6f9bff; --accent-ink: #0b1220; --m1: #5d8cf0; --m2: #ee7660;
+  --stage-a: #232d3a; --stage-b: #0d1218; --label-bg: rgba(18,24,32,.86); --focus: #8fb0ff;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 22px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; } }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-stretch: 78%; font-weight: 800; font-size: clamp(34px, 5vw, 52px); line-height: 1; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-stretch: 85%; font-weight: 700; font-size: 21px; margin: 0; text-wrap: balance; }
+.intro { display: flex; flex-wrap: wrap; gap: 14px 32px; align-items: center; }
+.intro p { margin: 0; max-width: 60ch; color: var(--muted); }
+.law { display: flex; align-items: center; gap: 22px; font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; }
+.law .eq { display: flex; align-items: center; gap: 8px; font-size: 18px; }
+.frac { display: inline-grid; text-align: center; line-height: 1.15; }
+.frac span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 4px 2px; }
+.law .g { font-size: 12.5px; color: var(--muted); border-left: 1px solid var(--line); padding-left: 18px; }
+
+/* Stage */
+.stage { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 50% 18%, var(--stage-a), var(--stage-b)); aspect-ratio: 16 / 8; min-height: 360px; max-height: 620px; width: 100%; }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.stage .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.flabel { position: absolute; top: 0; left: 0; display: grid; gap: 1px; padding: 6px 10px; border-radius: 8px; background: var(--label-bg); border: 1px solid var(--line); font-size: 12px; white-space: nowrap; box-shadow: 0 2px 10px rgba(10,20,30,.08); }
+.flabel .n { color: var(--muted); }
+.flabel .v { font-family: var(--font-mono); font-weight: 600; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.flabel.m1 { border-left: 3px solid var(--m1); }
+.flabel.m2 { border-left: 3px solid var(--m2); }
+.flabel .off { color: var(--m2); font-size: 11px; }
+.tag { position: absolute; top: 0; left: 0; font-family: var(--font-mono); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #fff; white-space: nowrap; }
+.tag.m1 { background: var(--m1); } .tag.m2 { background: var(--m2); }
+.rtag { position: absolute; top: 0; left: 0; font-family: var(--font-mono); font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--label-bg); border: 1px solid var(--line); white-space: nowrap; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bench { display: grid; gap: 10px; }
+.seg { display: inline-flex; background: var(--label-bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px; backdrop-filter: blur(6px); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { padding: 4px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--muted); }
+.seg input:checked + label { background: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 1px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; background: var(--label-bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); }
+.chk input { accent-color: var(--accent); margin: 0; }
+.spacer { flex: 1; }
+.btn { font: inherit; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line); background: var(--label-bg); color: var(--ink); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.hint { position: absolute; bottom: 10px; left: 14px; font-size: 12px; color: var(--muted); pointer-events: none; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+
+/* Panels */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } .readout { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: -1px; }
+.dot.m1 { background: var(--m1); } .dot.m2 { background: var(--m2); }
+.field { display: grid; gap: 4px; }
+.field > label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row input[type=range] { flex: 1; min-width: 0; }
+.mass-1 input[type=range] { accent-color: var(--m1); }
+.mass-2 input[type=range] { accent-color: var(--m2); }
+.row input[type=number] { width: 84px; font: inherit; font-family: var(--font-mono); font-size: 14px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); text-align: right; }
+.unit { font-family: var(--font-mono); font-size: 13px; color: var(--muted); width: 20px; }
+.readout .big { font-family: var(--font-mono); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; overflow-wrap: anywhere; }
+.readout dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.readout .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+sup { font-size: .68em; }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+tr:last-child td { border-bottom: 0; }
+.empty { padding: 18px; text-align: center; color: var(--muted); font-size: 13px; }
+.x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 0 4px; }
+.x:hover { color: var(--m2); }
+.note { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.q { display: grid; gap: 8px; padding-block: 14px; border-top: 1px solid var(--line); }
+.q:first-of-type { border-top: 0; padding-top: 2px; }
+.q-head { display: flex; gap: 10px; align-items: baseline; }
+.q-num { font-family: var(--font-display); font-stretch: 80%; font-weight: 800; font-size: 20px; color: var(--accent); min-width: 18px; }
+.q-pts { margin-left: auto; font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.q p { margin: 0; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 28px; }
+.opts label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; font-size: 13.5px; cursor: pointer; background: var(--surface-2); }
+.opts input { accent-color: var(--accent); margin: 0; }
+.opts label:has(input:checked) { border-color: var(--accent); }
+.submit { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Physics lab · Newton's law of universal gravitation · 10 points</div>
+    <h1>Gravity Force Lab</h1>
+    <div class="intro">
+      <p>Two objects attract each other with a force proportional to the product of their masses and inversely proportional to the square of the distance between their centers. Drag the spheres along the rail, change their masses, and watch the force on each one.</p>
+      <div class="law" aria-label="F equals G times m1 times m2 over r squared">
+        <div class="eq"><i>F</i> = <i>G</i>&thinsp;<span class="frac"><span>m<sub>1</sub>m<sub>2</sub></span><span>r<sup>2</sup></span></span></div>
+        <div class="g">G = 6.67 × 10<sup>−11</sup><br>N·m<sup>2</sup>/kg<sup>2</sup></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="bench">
+  <div class="toolbar">
+      <div class="seg" role="radiogroup" aria-label="Number format">
+        <input type="radio" name="notation" id="n-sci" value="sci" checked><label for="n-sci">Scientific notation</label>
+        <input type="radio" name="notation" id="n-dec" value="dec"><label for="n-dec">Decimal</label>
+      </div>
+      <label class="chk"><input type="checkbox" id="show-values" checked> Force values</label>
+      <label class="chk"><input type="checkbox" id="show-dist" checked> Distance</label>
+      <span class="spacer"></span>
+      <button class="btn" id="reset-view" type="button">Reset view</button>
+    </div>
+  <section class="stage" id="stage" aria-label="3D simulation of two masses on a rail">
+    <div class="labels" id="labels"></div>
+    <div class="hint" id="hint">Drag a sphere to move it · drag the background to orbit · scroll to zoom</div>
+  </section>
+  </div>
+
+  <div class="grid">
+    <section class="panel mass-1" aria-labelledby="h-m1">
+      <div class="panel-head"><h2 id="h-m1"><span class="dot m1"></span>Mass 1 (m<sub>1</sub>)</h2></div>
+      <div class="field"><label for="m1-num">Mass</label>
+        <div class="row"><input type="range" id="m1-range" min="1" max="1000" step="1" aria-label="Mass 1 slider"><input type="number" id="m1-num" min="1" max="1000" step="1"><span class="unit">kg</span></div></div>
+      <div class="field"><label for="x1-num">Position</label>
+        <div class="row"><input type="range" id="x1-range" min="0" max="10" step="0.1" aria-label="Mass 1 position slider"><input type="number" id="x1-num" min="0" max="10" step="0.1"><span class="unit">m</span></div></div>
+    </section>
+    <section class="panel mass-2" aria-labelledby="h-m2">
+      <div class="panel-head"><h2 id="h-m2"><span class="dot m2"></span>Mass 2 (m<sub>2</sub>)</h2></div>
+      <div class="field"><label for="m2-num">Mass</label>
+        <div class="row"><input type="range" id="m2-range" min="1" max="1000" step="1" aria-label="Mass 2 slider"><input type="number" id="m2-num" min="1" max="1000" step="1"><span class="unit">kg</span></div></div>
+      <div class="field"><label for="x2-num">Position</label>
+        <div class="row"><input type="range" id="x2-range" min="0" max="10" step="0.1" aria-label="Mass 2 position slider"><input type="number" id="x2-num" min="0" max="10" step="0.1"><span class="unit">m</span></div></div>
+    </section>
+    <section class="panel readout" aria-labelledby="h-ro" aria-live="polite">
+      <div class="panel-head"><h2 id="h-ro">Force between the masses</h2></div>
+      <div class="big" id="ro-force"></div>
+      <dl>
+        <dt>Center-to-center distance r</dt><dd id="ro-r"></dd>
+        <dt>m<sub>1</sub> × m<sub>2</sub></dt><dd id="ro-mm"></dd>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" id="record" type="button">Record trial</button>
+        <button class="btn" id="reset-lab" type="button">Reset masses</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="h-log">
+      <div class="panel-head"><h2 id="h-log">Data log</h2>
+        <div class="row"><button class="btn" id="copy" type="button">Copy as CSV</button><button class="btn" id="clear" type="button">Clear</button></div></div>
+      <div class="tablebox"><table>
+        <thead><tr><th>Trial</th><th>m₁ (kg)</th><th>x₁ (m)</th><th>m₂ (kg)</th><th>x₂ (m)</th><th>r (m)</th><th>F (N)</th><th></th></tr></thead>
+        <tbody id="log"></tbody>
+      </table></div>
+      <p class="note" id="log-note">Press <b>Record trial</b> to save the current setup. Your log stays in this browser only.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="h-q">
+      <div class="panel-head"><h2 id="h-q">Experiment questions</h2></div>
+      <div id="questions"></div>
+      <div class="submit">Use scientific notation for the whole experiment. When you're done, enter your answers in the <b>Lab Quiz</b> on the course website. Selections here are only notes for you and are not graded.</div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  "use strict";
+  const G = 6.67e-11;
+  const DEFAULTS = { m1: 100, m2: 400, x1: 2, x2: 6 };
+  const S = Object.assign({ notation: "sci", showValues: true, showDist: true }, DEFAULTS);
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const rad = (m) => 0.62 * Math.cbrt(m / 1000);           // sphere radius in meters
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("gfl-" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("gfl-" + k, JSON.stringify(v)); } catch (e) {} }
+  };
+  S.notation = store.get("notation", "sci");
+
+  // ---------- physics + formatting ----------
+  const dist = () => r1(S.x2 - S.x1);
+  const force = (m1 = S.m1, m2 = S.m2, r = dist()) => G * m1 * m2 / (r * r);
+  function minSep() { return Math.ceil((rad(S.m1) + rad(S.m2) + 0.08) * 10) / 10; }
+  function constrain(which) {
+    S.m1 = clamp(Math.round(S.m1) || 1, 1, 1000);
+    S.m2 = clamp(Math.round(S.m2) || 1, 1, 1000);
+    S.x1 = clamp(r1(S.x1), 0, 10); S.x2 = clamp(r1(S.x2), 0, 10);
+    const d = minSep();
+    if (S.x2 - S.x1 < d - 1e-9) {
+      if (which === "x1") S.x1 = r1(S.x2 - d); else S.x2 = r1(S.x1 + d);
+      if (S.x2 > 10) { S.x2 = 10; S.x1 = r1(10 - d); }
+      if (S.x1 < 0) { S.x1 = 0; S.x2 = r1(d); }
+    }
+  }
+  function sciParts(F) {
+    let e = Math.floor(Math.log10(F)), m = F / Math.pow(10, e);
+    if (+m.toFixed(3) >= 10) { m /= 10; e++; }
+    return { m: m.toFixed(3), e };
+  }
+  function fmt(F) {
+    if (S.notation === "sci") {
+      const p = sciParts(F);
+      return p.m + " × 10<sup>" + (p.e < 0 ? "−" : "") + Math.abs(p.e) + "</sup> N";
+    }
+    const e = Math.floor(Math.log10(F));
+    const s = F.toFixed(Math.max(0, 3 - e));
+    const [i, f] = s.split(".");
+    return (f ? i + "." + f.replace(/(\d{3})(?=\d)/g, "$1 ") : i) + " N";
+  }
+  const fmtPlain = (F) => { const p = sciParts(F); return p.m + "e" + p.e; };
+
+  // ---------- 3D scene ----------
+  const stage = $("stage"), labels = $("labels");
+  const three = window.THREE && window.THREE.OrbitControls ? window.THREE : null;
+  let scene3d = null;
+  if (three) { try { scene3d = build3D(three); } catch (err) { console.error(err); } }
+  if (!scene3d) {
+    const msg = document.createElement("div"); msg.className = "nogl";
+    msg.textContent = "The 3D view couldn't start in this browser. The controls, readout and data log below still work.";
+    stage.appendChild(msg); $("hint").hidden = true;
+  }
+
+  function build3D(T) {
+    const H = 1.6;                 // sphere center height above rail axis
+    const ARROW_K = 4.5e6;         // meters of arrow per newton
+    const ARROW_MAX = 4.6;
+    const wx = (xm) => xm - 5;     // lab meters -> world x
+
+    const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = T.sRGBEncoding;
+    renderer.toneMapping = T.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.85;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = T.PCFSoftShadowMap;
+    stage.insertBefore(renderer.domElement, labels);
+
+    const scene = new T.Scene();
+    const camera = new T.PerspectiveCamera(34, 2, 0.1, 200);
+
+    // soft studio reflections
+    const pmrem = new T.PMREMGenerator(renderer);
+    const env = new T.Scene();
+    const room = new T.Mesh(new T.SphereGeometry(30, 32, 16), new T.MeshBasicMaterial({ color: 0x3c4550, side: T.BackSide }));
+    env.add(room);
+    [[0, 18, 0, 2.2], [-14, 6, 10, 1.3], [14, 8, -6, 0.9]].forEach(([x, y, z, k]) => {
+      const p = new T.Mesh(new T.PlaneGeometry(14, 6), new T.MeshBasicMaterial({ color: new T.Color(k, k, k), side: T.DoubleSide }));
+      p.position.set(x, y, z); p.lookAt(0, 0, 0); env.add(p);
+    });
+    scene.environment = pmrem.fromScene(env, 0.04).texture;
+
+    scene.add(new T.HemisphereLight(0xffffff, 0x6d7a88, 0.3));
+    const sun = new T.DirectionalLight(0xffffff, 1.25);
+    sun.position.set(3.5, 10, 7);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 6, bottom: -6, near: 1, far: 30 });
+    sun.shadow.bias = -0.0004; sun.shadow.radius = 4;
+    scene.add(sun);
+
+    // floor (only shows shadows)
+    const floor = new T.Mesh(new T.PlaneGeometry(60, 40), new T.ShadowMaterial({ opacity: 0.2 }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = -1.0; floor.receiveShadow = true;
+    scene.add(floor);
+
+    // rail with printed ruler
+    const lin0 = (h) => new T.Color(h).convertSRGBToLinear();
+    const metal = new T.MeshStandardMaterial({ color: lin0(0xc3cbd4), metalness: 0.75, roughness: 0.32 });
+    const dark = new T.MeshStandardMaterial({ color: lin0(0x2a323d), metalness: 0.4, roughness: 0.45 });
+    const rail = new T.Mesh(new T.BoxGeometry(11, 0.25, 0.34), metal);
+    rail.castShadow = rail.receiveShadow = true; scene.add(rail);
+    [-5.15, 5.15].forEach((x) => {
+      const leg = new T.Mesh(new T.BoxGeometry(0.16, 0.875, 0.16), dark);
+      leg.position.set(x, -0.5625, 0); leg.castShadow = true; scene.add(leg);
+      const foot = new T.Mesh(new T.BoxGeometry(0.5, 0.05, 0.7), dark);
+      foot.position.set(x, -0.975, 0); foot.castShadow = foot.receiveShadow = true; scene.add(foot);
+    });
+    const ruler = new T.Mesh(new T.PlaneGeometry(11, 0.25), new T.MeshStandardMaterial({ map: rulerTexture(T, renderer), roughness: 0.6, metalness: 0.05 }));
+    ruler.position.set(0, 0, 0.171); ruler.receiveShadow = true; scene.add(ruler);
+    const topStrip = new T.Mesh(new T.PlaneGeometry(11, 0.34), new T.MeshStandardMaterial({ map: rulerTexture(T, renderer, true), roughness: 0.55, metalness: 0.1 }));
+    topStrip.rotation.x = -Math.PI / 2; topStrip.position.y = 0.1251; topStrip.receiveShadow = true; scene.add(topStrip);
+
+    // the two masses
+    const pickables = [];
+    function makeMass(idx, color) {
+      const g = new T.Group();
+      const carriage = new T.Mesh(new T.BoxGeometry(0.38, 0.16, 0.46), dark);
+      carriage.position.y = 0.125 + 0.08; carriage.castShadow = true;
+      const post = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 1, 16), metal);
+      post.castShadow = true;
+      const sphere = new T.Mesh(new T.SphereGeometry(1, 64, 32), new T.MeshStandardMaterial({ color, metalness: 0.15, roughness: 0.3, envMapIntensity: 0.7 }));
+      sphere.position.y = H; sphere.castShadow = true;
+      [carriage, post, sphere].forEach((o) => { o.userData.mass = idx; pickables.push(o); });
+      g.add(carriage, post, sphere);
+      scene.add(g);
+      return { g, post, sphere };
+    }
+    const lin = (h) => new T.Color(h).convertSRGBToLinear();
+    const M1 = makeMass(1, lin(0x2f66d6));
+    const M2 = makeMass(2, lin(0xd4503a));
+
+    function makeArrow(color) {
+      const mat = new T.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.15, emissive: color, emissiveIntensity: 0.05 });
+      const g = new T.Group();
+      const shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 1, 20), mat); shaft.rotation.z = -Math.PI / 2;
+      const head = new T.Mesh(new T.ConeGeometry(0.13, 0.32, 28), mat); head.rotation.z = -Math.PI / 2;
+      shaft.castShadow = head.castShadow = true;
+      g.add(shaft, head); g.userData = { shaft, head }; scene.add(g); return g;
+    }
+    function setArrow(a, L) {
+      const hl = Math.min(0.32, L * 0.6), sl = Math.max(L - hl, 0.001), k = hl / 0.32;
+      a.userData.shaft.scale.y = sl; a.userData.shaft.position.x = sl / 2;
+      a.userData.head.scale.set(k, k, k); a.userData.head.position.x = sl + hl / 2;
+    }
+    const A1 = makeArrow(lin(0x2f66d6)), A2 = makeArrow(lin(0xd4503a));
+    A2.rotation.y = Math.PI;
+
+    // distance gauge
+    const gaugeMat = new T.MeshStandardMaterial({ color: lin0(0x3a4554), roughness: 0.5 });
+    const gauge = new T.Group();
+    const gBar = new T.Mesh(new T.CylinderGeometry(0.014, 0.014, 1, 10), gaugeMat); gBar.rotation.z = Math.PI / 2;
+    const gEndA = new T.Mesh(new T.BoxGeometry(0.03, 0.22, 0.03), gaugeMat);
+    const gEndB = gEndA.clone();
+    gauge.add(gBar, gEndA, gEndB); gauge.position.set(0, 0.62, 0.32); scene.add(gauge);
+
+    // HTML overlays
+    const mk = (cls) => { const d = document.createElement("div"); d.className = cls; labels.appendChild(d); return d; };
+    const L1 = mk("flabel m1"), L2 = mk("flabel m2"), T1 = mk("tag m1"), T2 = mk("tag m2"), RT = mk("rtag");
+    let capped1 = false;
+
+    function update() {
+      const x1 = wx(S.x1), x2 = wx(S.x2);
+      [[M1, x1, S.m1], [M2, x2, S.m2]].forEach(([M, x, m]) => {
+        const r = rad(m);
+        M.g.position.x = x;
+        M.sphere.scale.setScalar(r);
+        const top = 0.285, bottom = H - r * 0.9;
+        M.post.scale.y = bottom - top; M.post.position.y = (top + bottom) / 2;
+      });
+      const F = force(), L = Math.min(F * ARROW_K, ARROW_MAX);
+      capped1 = F * ARROW_K > ARROW_MAX;
+      setArrow(A1, Math.max(L, 0.02)); setArrow(A2, Math.max(L, 0.02));
+      const ay = H + 0.62 + 0.25;
+      A1.position.set(x1, ay, 0); A2.position.set(x2, ay + 0.34, 0);
+      const d = x2 - x1;
+      gauge.visible = S.showDist; RT.hidden = !S.showDist;
+      gBar.scale.y = d; gBar.position.x = (x1 + x2) / 2; gEndA.position.x = x1; gEndB.position.x = x2;
+      const val = S.showValues ? '<span class="v">' + fmt(F) + "</span>" : "";
+      const off = capped1 ? '<span class="off">arrow shortened to fit</span>' : "";
+      L1.innerHTML = '<span class="n">Force on m<sub>1</sub> by m<sub>2</sub></span>' + val + off;
+      L2.innerHTML = '<span class="n">Force on m<sub>2</sub> by m<sub>1</sub></span>' + val + off;
+      T1.innerHTML = "m<sub>1</sub> = " + S.m1 + " kg"; T2.innerHTML = "m<sub>2</sub> = " + S.m2 + " kg";
+      RT.textContent = "r = " + dist().toFixed(1) + " m";
+    }
+
+    const v = new T.Vector3();
+    function project(x, y, z) {
+      v.set(x, y, z).project(camera);
+      const w = stage.clientWidth, h = stage.clientHeight;
+      return [(v.x + 1) / 2 * w, (1 - v.y) / 2 * h];
+    }
+    function place(el, x, y, z, anchor) {
+      const [px, py] = project(x, y, z);
+      const w = stage.clientWidth, ew = el.offsetWidth, eh = el.offsetHeight;
+      let left = anchor === "end" ? px - ew + 14 : anchor === "start" ? px - 14 : px - ew / 2;
+      left = clamp(left, 8, w - ew - 8);
+      el.style.transform = "translate(" + Math.round(left) + "px," + Math.round(Math.max(8, py - eh)) + "px)";
+    }
+    function placeLabels() {
+      const x1 = wx(S.x1), x2 = wx(S.x2), top = H + 1.55;
+      place(L1, x1, top, 0, "end");
+      place(L2, x2, top + 0.0, 0, "start");
+      place(T1, x1, -0.32, 0.25, "mid");
+      place(T2, x2, -0.32, 0.25, "mid");
+      place(RT, (x1 + x2) / 2, 0.52, 0.32, "mid");
+      // keep the two force labels from overlapping when the masses are close
+      const b1 = L1.getBoundingClientRect(), b2 = L2.getBoundingClientRect();
+      if (b1.right > b2.left - 6 && b1.left < b2.right) {
+        const [, py] = project(x2, top, 0);
+        const m = L2.style.transform.match(/translate\(([-\d.]+)px/);
+        L2.style.transform = "translate(" + (m ? m[1] : 0) + "px," + Math.round(Math.max(8, py - L2.offsetHeight) + b1.height + 6) + "px)";
+      }
+    }
+
+    // camera + orbit
+    const controls = new T.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
+    controls.minPolarAngle = 0.55; controls.maxPolarAngle = 1.52;
+    controls.minAzimuthAngle = -0.95; controls.maxAzimuthAngle = 0.95;
+    const target = new T.Vector3(0, 1.05, 0);
+    function fit() {
+      const w = stage.clientWidth, h = stage.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+      const t = Math.tan(T.MathUtils.degToRad(camera.fov / 2));
+      const dW = 5.85 / (t * camera.aspect), dH = 2.6 / t;
+      const d = Math.max(dW, dH);
+      controls.minDistance = d * 0.45; controls.maxDistance = d * 1.6;
+      return d;
+    }
+    function resetView() {
+      const d = fit();
+      const dir = new T.Vector3(0.0, 0.24, 1).normalize();
+      camera.position.copy(target).addScaledVector(dir, d);
+      controls.target.copy(target); controls.update();
+    }
+    resetView();
+    new ResizeObserver(() => { const d = fit(); if (!touched) resetView(); else controls.update(); }).observe(stage);
+    let touched = false;
+    controls.addEventListener("start", () => { touched = true; });
+    $("reset-view").addEventListener("click", () => { touched = false; resetView(); });
+
+    // dragging spheres
+    const ray = new T.Raycaster(), ndc = new T.Vector2(), plane = new T.Plane(new T.Vector3(0, 0, 1), 0), hit = new T.Vector3();
+    let drag = null;
+    const canvas = renderer.domElement;
+    function aim(e) {
+      const b = canvas.getBoundingClientRect();
+      ndc.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+    }
+    canvas.addEventListener("pointerdown", (e) => {
+      aim(e);
+      const h = ray.intersectObjects(pickables, false)[0];
+      if (!h) return;
+      const idx = h.object.userData.mass;
+      if (!ray.ray.intersectPlane(plane, hit)) return;
+      drag = { idx, off: hit.x - wx(S["x" + idx]) };
+      controls.enabled = false;
+      canvas.setPointerCapture(e.pointerId);
+      canvas.style.cursor = "grabbing";
+      e.stopImmediatePropagation(); e.preventDefault();
+    }, true);
+    canvas.addEventListener("pointermove", (e) => {
+      aim(e);
+      if (drag) {
+        if (ray.ray.intersectPlane(plane, hit)) {
+          S["x" + drag.idx] = hit.x - drag.off + 5;
+          constrain("x" + drag.idx); sync();
+        }
+      } else {
+        canvas.style.cursor = ray.intersectObjects(pickables, false).length ? "grab" : "";
+      }
+    });
+    const end = () => { if (drag) { drag = null; controls.enabled = true; canvas.style.cursor = ""; } };
+    canvas.addEventListener("pointerup", end);
+    canvas.addEventListener("pointercancel", end);
+
+    let raf = 0;
+    function loop() {
+      raf = requestAnimationFrame(loop);
+      controls.update();
+      renderer.render(scene, camera);
+      placeLabels();
+    }
+    loop();
+    return { update };
+  }
+
+  function rulerTexture(T, renderer, top) {
+    const pxm = 400, W = 11 * pxm, Hh = top ? 136 : 110;
+    const c = document.createElement("canvas"); c.width = W; c.height = Hh;
+    const g = c.getContext("2d");
+    g.fillStyle = top ? "#d4dae1" : "#eef1f4"; g.fillRect(0, 0, W, Hh);
+    g.fillStyle = "#1d2631"; g.strokeStyle = "#1d2631";
+    const X = (m) => (m + 0.5) * pxm;
+    for (let i = 0; i <= 100; i++) {
+      const m = i / 10, x = X(m), major = i % 10 === 0, half = i % 5 === 0;
+      const len = major ? 0.5 : half ? 0.34 : 0.2;
+      g.lineWidth = major ? 5 : 3;
+      if (top) {
+        g.beginPath(); g.moveTo(x, Hh); g.lineTo(x, Hh - Hh * len * 0.8); g.stroke();
+      } else {
+        g.beginPath(); g.moveTo(x, 0); g.lineTo(x, Hh * len); g.stroke();
+      }
+      if (major && !top) {
+        g.font = "700 54px system-ui, Segoe UI, sans-serif"; g.textAlign = "center"; g.textBaseline = "bottom";
+        g.fillText(String(m), x, Hh - 4);
+      }
+    }
+    if (!top) { g.font = "600 34px system-ui, sans-serif"; g.textAlign = "left"; g.fillText("m", X(10) + 40, Hh - 6); }
+    const t = new T.CanvasTexture(c);
+    t.encoding = T.sRGBEncoding; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
+
+  // ---------- controls ----------
+  const inputs = { m1: ["m1-range", "m1-num"], m2: ["m2-range", "m2-num"], x1: ["x1-range", "x1-num"], x2: ["x2-range", "x2-num"] };
+  Object.keys(inputs).forEach((k) => inputs[k].forEach((id) => {
+    const el = $(id);
+    el.addEventListener("input", () => {
+      const n = parseFloat(el.value);
+      if (!isFinite(n)) return;
+      if (el.type === "number" && (n < +el.min || n > +el.max)) return;
+      S[k] = n; constrain(k); sync(id);
+    });
+    el.addEventListener("change", () => sync());
+  }));
+  document.querySelectorAll('input[name="notation"]').forEach((r) => {
+    r.checked = r.value === S.notation;
+    r.addEventListener("change", () => { S.notation = r.value; store.set("notation", S.notation); sync(); renderLog(); });
+  });
+  $("show-values").addEventListener("change", (e) => { S.showValues = e.target.checked; sync(); });
+  $("show-dist").addEventListener("change", (e) => { S.showDist = e.target.checked; sync(); });
+  $("reset-lab").addEventListener("click", () => { Object.assign(S, DEFAULTS); constrain(); sync(); });
+
+  function sync(skip) {
+    Object.keys(inputs).forEach((k) => inputs[k].forEach((id) => {
+      if (id === skip) return;
+      $(id).value = k[0] === "x" ? S[k].toFixed(1) : S[k];
+    }));
+    const F = force();
+    $("ro-force").innerHTML = fmt(F);
+    $("ro-r").textContent = dist().toFixed(1) + " m";
+    $("ro-mm").innerHTML = (S.m1 * S.m2).toLocaleString("en-US") + " kg<sup>2</sup>";
+    if (scene3d) scene3d.update();
+  }
+
+  // ---------- data log ----------
+  let log = store.get("log", []);
+  function renderLog() {
+    const tb = $("log");
+    if (!log.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No trials recorded yet.</td></tr>'; return; }
+    tb.innerHTML = log.map((t, i) =>
+      "<tr><td>" + (i + 1) + "</td><td>" + t.m1 + "</td><td>" + t.x1.toFixed(1) + "</td><td>" + t.m2 + "</td><td>" + t.x2.toFixed(1) +
+      "</td><td>" + t.r.toFixed(1) + "</td><td>" + fmt(t.F).replace(/ N$/, "") + '</td><td><button class="x" data-i="' + i + '" aria-label="Delete trial ' + (i + 1) + '">×</button></td></tr>'
+    ).join("");
+  }
+  $("log").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-i]"); if (!b) return;
+    log.splice(+b.dataset.i, 1); store.set("log", log); renderLog();
+  });
+  $("record").addEventListener("click", () => {
+    log.push({ m1: S.m1, m2: S.m2, x1: S.x1, x2: S.x2, r: dist(), F: force() });
+    store.set("log", log); renderLog();
+  });
+  let clearArmed = false;
+  $("clear").addEventListener("click", (e) => {
+    if (!log.length) return;
+    if (!clearArmed) { clearArmed = true; e.target.textContent = "Confirm clear"; setTimeout(() => { clearArmed = false; e.target.textContent = "Clear"; }, 3000); return; }
+    clearArmed = false; e.target.textContent = "Clear"; log = []; store.set("log", log); renderLog();
+  });
+  $("copy").addEventListener("click", (e) => {
+    const csv = ["trial,m1_kg,x1_m,m2_kg,x2_m,r_m,F_N"].concat(log.map((t, i) => [i + 1, t.m1, t.x1, t.m2, t.x2, t.r, fmtPlain(t.F)].join(","))).join("\n");
+    const btn = e.target;
+    const done = (msg) => { btn.textContent = msg; setTimeout(() => { btn.textContent = "Copy as CSV"; }, 1800); };
+    try {
+      navigator.clipboard.writeText(csv).then(() => done("Copied"), () => done("Copy blocked"));
+    } catch (err) { done("Copy blocked"); }
+  });
+
+  // ---------- questions ----------
+  const Q = [
+    { pts: 1, text: "Change the masses and change the distance. Each time, notice the magnitude of the force on each mass. The magnitudes of the forces m<sub>1</sub> and m<sub>2</sub> exert on each other are:",
+      opts: ["Always equal", "Unrelated", "Greater on the smaller mass", "Greater on the bigger mass"] },
+    { pts: 3, text: "Set m<sub>1</sub> = 100 kg at 0 m and m<sub>2</sub> = 400 kg at 3 m. Note the force. Now move m<sub>2</sub> to 6 m and note the force. The ratio of the force in the first case to the second case is:",
+      opts: ["4", "3", "2", "1", "5"] },
+    { pts: 3, text: "Set m<sub>1</sub> = 100 kg at 0 m and m<sub>2</sub> = 200 kg at 3 m. Note the force. Now make m<sub>1</sub> = 200 kg and m<sub>2</sub> = 500 kg and note the force. The ratio of the force in the second case to the first case is:",
+      opts: ["5", "4", "3", "2", "1"] },
+    { pts: 3, text: "Set m<sub>1</sub> = 100 kg at 0 m and m<sub>2</sub> = 400 kg at 3 m. Note the force. Now make m<sub>2</sub> = 200 kg, place it at 6 m, and note the force. The ratio of the force in the first case to the second case is:",
+      opts: ["10", "8", "6", "4", "2"] }
+  ];
+  const answers = store.get("answers", {});
+  $("questions").innerHTML = Q.map((q, i) =>
+    '<div class="q"><div class="q-head"><span class="q-num">' + (i + 1) + "</span><p>" + q.text + '</p><span class="q-pts">' + q.pts + " pt" + (q.pts > 1 ? "s" : "") +
+    '</span></div><div class="opts" role="radiogroup">' + q.opts.map((o, j) =>
+      '<label><input type="radio" name="q' + i + '" id="q' + i + "-" + j + '" value="' + j + '"' + (answers[i] === j ? " checked" : "") + "> " + o + "</label>").join("") +
+    "</div></div>").join("");
+  $("questions").addEventListener("change", (e) => {
+    const m = e.target.name && e.target.name.match(/^q(\d+)$/); if (!m) return;
+    answers[m[1]] = +e.target.value; store.set("answers", answers);
+  });
+
+  constrain(); sync(); renderLog();
+})();
+</script>
+</body>
+</html>
